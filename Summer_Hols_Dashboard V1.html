@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Summer Hols Dashboard</title>
+<style>
+  :root {
+    --bg-page: #1a1a1a; --bg-primary: #242424; --bg-secondary: #2c2c2c;
+    --text-primary: #f0efe9; --text-secondary: #a8a6a0; --text-tertiary: #7a7873;
+    --border: rgba(255,255,255,0.1); --border-strong: rgba(255,255,255,0.18);
+    --info-bg: #1c3a52; --info-text: #7cb8e8;
+    --success-bg: #1d3a26; --success-text: #7fcf9a;
+    --warning-bg: #3d3216; --warning-text: #e8c46a;
+    --neutral-bg: #333230; --neutral-text: #c4c2bb;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 2rem 1rem 4rem; background: var(--bg-page); color: var(--text-primary); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.5; }
+  .container { max-width: 720px; margin: 0 auto; }
+  h1 { font-size: 20px; font-weight: 500; margin: 0 0 4px; }
+  .subtitle { font-size: 14px; color: var(--text-secondary); margin: 0 0 1.5rem; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px,1fr)); gap: 12px; margin-bottom: 1.5rem; }
+  .stat { background: var(--bg-secondary); border-radius: 10px; padding: 1rem; }
+  .stat .label { font-size: 13px; color: var(--text-secondary); margin: 0 0 4px; }
+  .stat .value { font-size: 24px; font-weight: 500; margin: 0; }
+  .filterbar { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 1rem; }
+  .filterbar button { font-size: 13px; padding: 6px 14px; border-radius: 8px; border: 0.5px solid var(--border-strong); background: transparent; color: var(--text-primary); cursor: pointer; }
+  .filterbar button:hover { background: var(--bg-secondary); }
+  .filterbar button.active { background: var(--info-bg); color: var(--info-text); border-color: var(--info-bg); }
+  .list-card { background: var(--bg-primary); border-radius: 12px; border: 0.5px solid var(--border); padding: 0.5rem 1rem; }
+  .week-header { font-size: 12px; font-weight: 500; color: var(--text-secondary); margin: 1.1rem 0 4px; padding-left: 4px; }
+  .week-header:first-child { margin-top: 0.5rem; }
+  .day-row { display: grid; grid-template-columns: 78px minmax(0,1fr) auto; align-items: center; gap: 10px; padding: 8px 6px; border-bottom: 0.5px solid var(--border); }
+  .day-row:last-child { border-bottom: none; }
+  .day-date { font-size: 13px; color: var(--text-secondary); }
+  .day-name { font-size: 12px; color: var(--text-tertiary); }
+  .day-status { font-size: 14px; font-weight: 500; }
+  .day-meta { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; }
+  .day-flags { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+  .pill { font-size: 11px; padding: 2px 8px; border-radius: 8px; white-space: nowrap; }
+  .p-kerry { background: var(--info-bg); color: var(--info-text); }
+  .p-me { background: var(--success-bg); color: var(--success-text); }
+  .p-both { background: var(--neutral-bg); color: var(--neutral-text); }
+  .p-tbd { background: var(--warning-bg); color: var(--warning-text); }
+  .p-info { background: var(--neutral-bg); color: var(--text-tertiary); }
+  .note-box { font-size: 12px; color: var(--text-secondary); margin: 0 0 0 78px; padding: 0 6px 8px; }
+  .legend { font-size: 12px; color: var(--text-tertiary); margin-top: 1rem; }
+  .footer-note { font-size: 12px; color: var(--text-tertiary); margin-top: 1.5rem; text-align: center; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Summer hols 2026</h1>
+  <p class="subtitle">17 July &ndash; 3 September &middot; childcare schedule</p>
+  <div class="stats">
+    <div class="stat"><p class="label">Total days</p><p class="value" id="stat-total">49</p></div>
+    <div class="stat"><p class="label">With Kerry</p><p class="value" id="stat-kerry">-</p></div>
+    <div class="stat"><p class="label">With me</p><p class="value" id="stat-me">-</p></div>
+    <div class="stat"><p class="label">Still TBD</p><p class="value" id="stat-tbd">-</p></div>
+  </div>
+  <p style="font-size:13px; color:var(--text-secondary); margin: 1.5rem 0 0.5rem; font-weight:500;">Filter by</p>
+  <div class="filterbar">
+    <button class="active" data-filter="all">All days</button>
+    <button data-filter="Kerry">With Kerry</button>
+    <button data-filter="changeover">Changeover</button>
+    <button data-filter="Me">With me</button>
+    <button data-filter="tbd">TBD / questions</button>
+  </div>
+  <div class="list-card"><div id="list"></div></div>
+  <p class="legend">Weeks start Monday. Status reflects the Holiday Days column (primary). Normal routine shown only as faint reference. Changeover days drawn directly from column F of the spreadsheet.</p>
+  <p class="footer-note">Built from Summer_Hols_V1.xlsx</p>
+</div>
+<script>
+const data = [{"date": "2026-07-17", "day": "Friday", "holiday": "Boys with Kerry", "normal": "Kerry", "changeover": "", "kerryDiary": "", "meDiary": "", "note": "Did you want to do school pickup so you can see them before their hols? We don't fly until 14:00 on Sat so perhaps you have them Friday night to allow me time to pack and sort Stan etc"}, {"date": "2026-07-18", "day": "Saturday", "holiday": "Boys to Me", "normal": "Kerry", "changeover": "to me", "kerryDiary": "", "meDiary": "", "note": ""}, {"date": "2026-07-19", "day": "Sunday", "holiday": "Spain", "normal": "Kerry", "changeover": "", "kerryDiary": "", "meDiary": "", "note": ""}, {"date": "2026-07-20", "day": "Monday", "holiday": "Spain", "normal": "Me", "changeover": "", "kerryDiary": "Work", "meDiary": "Hols", "note": ""}, {"date": "2026-07-21", "day": "Tuesday", "holiday": "Spain", "normal": "Me", "changeover": "", "kerryDiary": "Work", "meDiary": "Hols", "note": ""}, {"date": "2026-07-22", "day": "Wednesday", "holiday": "Spain", "normal": "Kerry", "changeover": "", "kerryDiary": "", "meDiary": "Hols", "note": ""}, {"date": "2026-07-23", "day": "Thursday", "holiday": "Spain", "normal": "Kerry", "changeover": "", "kerryDiary": "", "meDiary": "Hols", "note": ""}, {"date": "2026-07-24", "day": "Friday", "holiday": "Spain", "normal": "Me", "changeover": "", "kerryDiary": "Work", "meDiary": "Hols", "note": ""}, {"date": "2026-07-25", "day": "Saturday", "holiday": "Spain", "normal": "Me", "changeover": "", "kerryDiary": "", "meDiary": "", "note": "Return flight at 19:00 so best they sleep at mine and then you see them on Sunday morning?"}, {"date": "2026-07-26", "day": "Sunday", "holiday": "Boys to Kerry", "normal": "Kerry", "changeover": "to kerry", "kerryDiary": "", "meDiary": "", "note": ""}, {"date": "2026-07-27", "day": "Monday", "holiday": "Boys with Kerry", "normal": "Kerry", "changeover": "", "kerryDiary": "Hols", "meDiary": "", "note": ""}, {"date": "2026-07-28", "day": "Tuesday", "holiday": "Boys with Kerry", "normal": "Kerry", "changeover": "", "kerryDiary": "Hols", "meDiary": "Travel", "note": ""}, {"date": "2026-07-29", "day": "Wednesday", "holiday": "Boys with Kerry", "normal": "Me", "changeover": "", "kerryDiary": "Hols", "meDiary": "Travel", "note": ""}, {"date": "2026-07-30", "day": "Thursday", "holiday": "Boys with Kerry", "normal": "Me", "changeover": "", "kerryDiary": "Hols", "meDiary": "", "note": ""}, {"date": "2026-07-31", "day": "Friday", "holiday": "Boys with Kerry", "normal": "Kerry", "changeover": "", "kerryDiary": "Hols", "meDiary": "", "note": ""}, {"date": "2026-08-01", "day": "Saturday", "holiday": "Boys with Kerry", "normal": "Kerry", "changeover": "", "kerryDiary": "", "meDiary": "", "note": ""}, {"date": "2026-08-02", "day": "Sunday", "holiday": "Boys with Kerry", "normal": "Kerry", "changeover": "", "kerryDiary": "", "meDiary": "", "note": ""}, {"date": "2026-08-03", "day": "Monday", "holiday": "M&D?", "normal": "Me", "changeover": "to me", "kerryDiary": "Work", "meDiary": "", "note": ""}, {"date": "2026-08-04", "day": "Tuesday", "holiday": "M&D?", "normal": "Me", "changeover": "", "kerryDiary": "Work", "meDiary": "", "note": ""}, {"date": "2026-08-05", "day": "Wednesday", "holiday": "Boys with Kerry", "normal": "Kerry", "changeover": "to kerry", "kerryDiary": "", "meDiary": "", "note": ""}, {"date": "2026-08-06", "day": "Thursday", "holiday": "Boys with Kerry", "normal": "Kerry", "changeover": "", "kerryDiary": "", "meDiary": "Office", "note": ""}, {"date": "2026-08-07", "day": "Friday", "holiday": "M&D?", "normal": "Me", "changeover": "to me", "kerryDiary": "Work", "meDiary": "Office", "note": ""}, {"date": "2026-08-08", "day": "Saturday", "holiday": "Boys with me", "normal": "Me", "changeover": "", "kerryDiary": "", "meDiary": "", "note": ""}, {"date": "2026-08-09", "day": "Sunday", "holiday": "Boys with me", "normal": "Me", "changeover": "", "kerryDiary": "", "meDiary": "", "note": "Darcey's Party"}, {"date": "2026-08-10", "day": "Monday", "holiday": "Boys with me day", "normal": "Kerry", "changeover": "to kerry", "kerryDiary": "Work", "meDiary": "Hols", "note": "Kerry pickup after work"}, {"date": "2026-08-11", "day": "Tuesday", "holiday": "M&D?", "normal": "Kerry", "changeover": "", "kerryDiary": "Work", "meDiary": "", "note": ""}, {"date": "2026-08-12", "day": "Wednesday", "holiday": "Boys with Kerry", "normal": "Me", "changeover": "to me", "kerryDiary": "", "meDiary": "", "note": ""}, {"date": "2026-08-13", "day": "Thursday", "holiday": "Boys with Kerry", "normal": "Me", "changeover": "", "kerryDiary": "", "meDiary": "", "note": ""}, {"date": "2026-08-14", "day": "Friday", "holiday": "Boys with me?", "normal": "Kerry", "changeover": "to kerry", "kerryDiary": "Work", "meDiary": "Hols", "note": "Kerry pickup after work"}, {"date": "2026-08-15", "day": "Saturday", "holiday": "Boys with Kerry", "normal": "Kerry", "changeover": "", "kerryDiary": "", "meDiary": "", "note": ""}, {"date": "2026-08-16", "day": "Sunday", "holiday": "Boys with Kerry", "normal": "Kerry", "changeover": "", "kerryDiary": "", "meDiary": "", "note": ""}, {"date": "2026-08-17", "day": "Monday", "holiday": "M&D?", "normal": "Me", "changeover": "to me", "kerryDiary": "Work", "meDiary": "", "note": ""}, {"date": "2026-08-18", "day": "Tuesday", "holiday": "M&D?", "normal": "Me", "changeover": "", "kerryDiary": "Work", "meDiary": "", "note": ""}, {"date": "2026-08-19", "day": "Wednesday", "holiday": "Boys with Kerry", "normal": "Kerry", "changeover": "to kerry", "kerryDiary": "", "meDiary": "", "note": ""}, {"date": "2026-08-20", "day": "Thursday", "holiday": "Boys with Kerry", "normal": "Kerry", "changeover": "", "kerryDiary": "", "meDiary": "", "note": ""}, {"date": "2026-08-21", "day": "Friday", "holiday": "Boys with me?", "normal": "Me", "changeover": "to me", "kerryDiary": "Work", "meDiary": "Hols", "note": "I have them whilst your at work"}, {"date": "2026-08-22", "day": "Saturday", "holiday": "Boys with Kerry", "normal": "Me", "changeover": "", "kerryDiary": "", "meDiary": "", "note": ""}, {"date": "2026-08-23", "day": "Sunday", "holiday": "Boys with Kerry", "normal": "Me", "changeover": "", "kerryDiary": "", "meDiary": "", "note": ""}, {"date": "2026-08-24", "day": "Monday", "holiday": "M&D?", "normal": "Kerry", "changeover": "to kerry", "kerryDiary": "Work", "meDiary": "", "note": ""}, {"date": "2026-08-25", "day": "Tuesday", "holiday": "M&D?", "normal": "Kerry", "changeover": "", "kerryDiary": "Work", "meDiary": "", "note": ""}, {"date": "2026-08-26", "day": "Wednesday", "holiday": "Boys with Kerry", "normal": "Me", "changeover": "to me", "kerryDiary": "", "meDiary": "", "note": ""}, {"date": "2026-08-27", "day": "Thursday", "holiday": "Boys with Kerry", "normal": "Me", "changeover": "", "kerryDiary": "", "meDiary": "", "note": ""}, {"date": "2026-08-28", "day": "Friday", "holiday": "M&D?", "normal": "Kerry", "changeover": "to kerry", "kerryDiary": "Work", "meDiary": "", "note": "Are you away Friday night and Monday night?"}, {"date": "2026-08-29", "day": "Saturday", "holiday": "Boys with me", "normal": "Kerry", "changeover": "", "kerryDiary": "", "meDiary": "", "note": ""}, {"date": "2026-08-30", "day": "Sunday", "holiday": "Boys with me", "normal": "Kerry", "changeover": "", "kerryDiary": "", "meDiary": "", "note": ""}, {"date": "2026-08-31", "day": "Monday", "holiday": "Boys with me", "normal": "Me", "changeover": "to me", "kerryDiary": "Bank Holiday", "meDiary": "", "note": ""}, {"date": "2026-09-01", "day": "Tuesday", "holiday": "M&D?", "normal": "Me", "changeover": "", "kerryDiary": "Work", "meDiary": "", "note": ""}, {"date": "2026-09-02", "day": "Wednesday", "holiday": "Boys with Kerry", "normal": "Kerry", "changeover": "to kerry", "kerryDiary": "", "meDiary": "", "note": ""}, {"date": "2026-09-03", "day": "Thursday", "holiday": "Back at School", "normal": "Kerry", "changeover": "", "kerryDiary": "", "meDiary": "", "note": ""}];
+
+function who(d) {
+  const h = d.holiday;
+  if (h.toLowerCase().includes('spain')) return 'Me';
+  if (h.includes('?')) return 'tbd';
+  if (h.includes('/')) return 'both';
+  if (h.toLowerCase().includes('kerry')) return 'Kerry';
+  if (h.toLowerCase().includes('me')) return 'Me';
+  return 'other';
+}
+function pillClass(w) {
+  if (w === 'Kerry') return 'p-kerry';
+  if (w === 'Me') return 'p-me';
+  if (w === 'both') return 'p-both';
+  if (w === 'tbd') return 'p-tbd';
+  return 'p-both';
+}
+function fmtDate(iso) {
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
+function renderStats() {
+  document.getElementById('stat-kerry').textContent = data.filter(d => who(d) === 'Kerry').length;
+  document.getElementById('stat-me').textContent = data.filter(d => who(d) === 'Me').length;
+  document.getElementById('stat-tbd').textContent = data.filter(d => who(d) === 'tbd' || who(d) === 'both').length;
+}
+function render(filter) {
+  const list = document.getElementById('list');
+  list.innerHTML = '';
+  let lastWeek = null;
+  data.forEach(d => {
+    const w = who(d);
+    let show = true;
+    if (filter === 'Kerry') show = w === 'Kerry';
+    else if (filter === 'changeover') show = !!d.changeover;
+    else if (filter === 'Me') show = w === 'Me';
+    else if (filter === 'tbd') show = (w === 'tbd' || w === 'both');
+    if (!show) return;
+
+    const dt = new Date(d.date + 'T00:00:00');
+    const weekStart = new Date(dt);
+    const dow = dt.getDay();
+    weekStart.setDate(dt.getDate() - (dow === 0 ? 6 : dow - 1));
+    const weekKey = weekStart.toISOString().slice(0,10);
+    if (weekKey !== lastWeek) {
+      lastWeek = weekKey;
+      const wh = document.createElement('div');
+      wh.className = 'week-header';
+      wh.textContent = 'Week of ' + fmtDate(weekKey);
+      list.appendChild(wh);
+    }
+
+    const row = document.createElement('div');
+    row.className = 'day-row';
+    const flags = [];
+    if (d.changeover) flags.push('<span class="pill p-tbd">Changeover: ' + d.changeover + '</span>');
+    if (d.kerryDiary) flags.push('<span class="pill p-info">K: ' + d.kerryDiary + '</span>');
+    if (d.meDiary) flags.push('<span class="pill p-info">Me: ' + d.meDiary + '</span>');
+    row.innerHTML = `
+      <div><div class="day-date">${fmtDate(d.date)}</div><div class="day-name">${d.day}</div></div>
+      <div>
+        <span class="day-status">${d.holiday}</span>
+        <div class="day-meta">normally ${d.normal}</div>
+      </div>
+      <div class="day-flags">
+        <span class="pill ${pillClass(w)}">${w === 'tbd' ? 'TBD - Check with M&D' : w === 'both' ? 'Both' : w}</span>
+        ${flags.join('')}
+      </div>`;
+    list.appendChild(row);
+    if (d.note) {
+      const note = document.createElement('div');
+      note.className = 'note-box';
+      note.textContent = '"' + d.note + '"';
+      list.appendChild(note);
+    }
+  });
+}
+document.querySelectorAll('.filterbar button[data-filter]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filterbar button[data-filter]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    render(btn.dataset.filter);
+  });
+});
+renderStats();
+render('all');
+</script>
+</body>
+</html>
